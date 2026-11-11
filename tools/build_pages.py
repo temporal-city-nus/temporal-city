@@ -41,11 +41,11 @@ REPO_JS = """/* Footer link to the GitHub repository, derived from the GitHub Pa
     var repo = location.pathname.split('/').filter(Boolean)[0];
     url += m[1] + '/' + (repo && !/\\.html$/i.test(repo) ? repo : m[1] + '.github.io');
   }
-  a.forEach(function (el) { el.href = url; el.hidden = !m; });
+  if (m) a.forEach(function (el) { el.href = url; });
 })();
 """
 
-FOOTER_LINK = ('<span><a class="tc-repo" href="https://github.com/" hidden '
+FOOTER_LINK = ('<span><a class="tc-repo" href="https://github.com/temporal-city-nus/temporal-city" '
                'style="color:inherit;text-decoration:underline;text-underline-offset:3px">Project repository on GitHub →</a></span>')
 
 

@@ -7,5 +7,5 @@
     var repo = location.pathname.split('/').filter(Boolean)[0];
     url += m[1] + '/' + (repo && !/\.html$/i.test(repo) ? repo : m[1] + '.github.io');
   }
-  a.forEach(function (el) { el.href = url; el.hidden = !m; });
+  if (m) a.forEach(function (el) { el.href = url; });
 })();
