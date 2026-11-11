@@ -5,7 +5,7 @@
 Mixed-use planning records which land uses sit together, not when their amenities are available. Temporal City builds hour-by-hour opening data for every amenity in an area and compares that 24-hour availability with the area's land-use mix.
 
 - **Website:** https://temporal-city-nus.github.io/temporal-city/
-- **Collector (browser version):** https://temporal-city-nus.github.io/temporal-city/collector.html (data and keys stay in your browser; turn on *00 Setup → Online server* to read business websites with AI)
+- **Collector (browser version):** https://temporal-city-nus.github.io/temporal-city/collector.html (data and keys stay in your browser; turn on *00 Setup → Online server* to read business websites with AI; **View in Atlas** shows your own data)
 - **Collector (server version):** https://temporal-city.onrender.com/collector.html (runs entirely on the free server, which may take about a minute to wake up; data is shared and may reset when the server restarts)
 
 ## Pages
@@ -13,9 +13,9 @@ Mixed-use planning records which land uses sit together, not when their amenitie
 | Page | What it shows |
 | --- | --- |
 | Story | Introduces the project’s central idea: access to everyday amenities depends on both where they are and when they are open. Three Singapore catchments illustrate how the same neighbourhood can offer different services over the course of a day. |
-| Collector | Choose an area to study, find amenities and their opening hours, and review the sources. Export the collected data to Atlas to map the results and compare study areas. |
-| Atlas | Maps the collected data so you can see which amenities are open, where they are concentrated, and how availability changes hour by hour. Explore hourly heatmaps alongside 3D and gross floor area (GFA) layers, and compare study areas across six research questions about access to amenities. |
-| Information | Research question, method, data, limitations and references. |
+| Collector | Choose an area to study, find amenities and their opening hours, and review the sources. **View in Atlas** opens the collected data in the Atlas to map the results and compare study areas. |
+| Atlas | Two data sources: the **Google Places sample** (three case areas) and the **Collector database** (every area you have collected). Maps the data so you can see which amenities are open, where they are concentrated, and how availability changes hour by hour. Explore hourly heatmaps alongside 3D and gross floor area (GFA) layers, and compare study areas across six research questions about access to amenities. |
+| Information | Project team, research question, method, data, limitations and references. |
 
 All pages share a day/night switch; **Auto** follows the hour shown on the page.
 
@@ -66,11 +66,20 @@ Results are reported for weekdays (Mon–Fri average), Saturday and Sunday, by a
 
 | Version | Where | Notes |
 |---|---|---|
-| **Browser version** | the website's `collector.html` | Data and keys stay in your browser. Any area via OSM; Google with your key. Websites + AI through the online server when **00 Setup → Online server** is ticked; or paste text in **03 → Google check** for the AI to read. |
+| **Browser version** | the website's `collector.html` | Data and keys stay in your browser. Any area via OSM; Google with your key. Websites + AI through the online server when **00 Setup → Online server** is ticked; or paste text in **03 → Google check** for the AI to read. **View in Atlas** sends the browser's data to the online server, which builds the Atlas (parcels, land use, GFA, COMPARE) and sends it back; nothing is stored there. |
 | **Full online version** | Render | The complete server app. Shared by all visitors; data is cleared when the server restarts. The browser version can use this server for websites + AI through the switch **00 Setup → Online server**: on by default, untick it to work without the server. |
 | **Local app** | your computer | The complete app, private to you. |
 
 Collector steps: **00 Setup → 01 Area → 02 Discover → 03 Hours → 04 Review → 05 Explore → 06 Export** (CSV, GeoJSON).
+
+### Collected data is kept
+
+- Study areas and their POIs build up: adding a new area does not remove the earlier ones. The browser version keeps them in this browser until you delete them.
+- **02 Discover** skips areas already discovered, so with two areas done and a third added only the third is run. Tick **Discover again areas already done** to run them again.
+- **03 Hours** skips POIs already processed (**Skip POIs already processed**, on by default).
+- **Stop** (in the job bar, 02 and 03) ends a running job at once; unfinished areas and POIs are run again next time.
+- **01 Area:** the ticked areas are the ones jobs run on. **Delete selected** or **Delete all areas** removes areas with their POIs and hours; **00 Setup → Reset database** clears everything.
+- **View in Atlas** shows every collected area (up to 8, largest first); **Choose study areas** in the Atlas picks which to compare.
 
 ## Run locally
 
@@ -95,12 +104,12 @@ py tools/build_pages.py
 
 then upload the project to GitHub. Pages updates in 1–2 minutes.
 
-**Render** (full online version) uses `render.yaml` and `Dockerfile`. After uploading to GitHub, open the service on Render and choose **Manual Deploy → Deploy latest commit**.
+**Render** (full online version) uses `render.yaml` and `Dockerfile`. After uploading to GitHub, open the service on Render and choose **Manual Deploy → Deploy latest commit**. Redeploy after any change to `app.py`, `core/` or `static/`: the browser version relies on the server for websites + AI and for building its Atlas.
 
 | Environment variable | Meaning |
 |---|---|
 | `TC_PUBLIC_DEMO` | `0` = full Collector (current), `1` = read-only |
-| `TC_WEB_ORIGINS` | Sites allowed to ask the server to read websites (default: the GitHub Pages site) |
+| `TC_WEB_ORIGINS` | Sites allowed to use the server for websites + AI and for the Atlas (default: the GitHub Pages site) |
 | `TC_DB` | Path of the database file (default `data/temporal_city.db`) |
 | `PORT` | Server port (set by Render) |
 
@@ -112,7 +121,8 @@ On Render, an API key saved in Setup is used by every visitor until removed; pre
 app.py               server: pages, Collector API, background jobs
 core/                discovery (OSM), hours parsing, website crawler, AI reader, Google Places,
                      quality labels, availability analysis, land use / GFA, exports
-static/              the four pages; web-collector.js runs the Collector in the browser
+static/              the four pages; web-collector.js runs the Collector in the browser,
+                     web-atlas.js shows its data in the Atlas
 docs/                built website for GitHub Pages
 tools/               build scripts for the website, the Atlas and land use
 data/                station list, simplified Master Plan 2025, local database
