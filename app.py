@@ -63,8 +63,12 @@ def _start(kind: str, target, *args) -> tuple[bool, str]:
     return True, "started"
 
 
-def job_discover(area_ids):
-    areas = db.q(f"SELECT * FROM areas WHERE id IN ({','.join('?' * len(area_ids))})", area_ids)
+def job_discover(area_ids, redo=False):
+    """Areas discovered before are skipped unless `redo` ("Discover again areas already done")."""
+    every = db.q(f"SELECT * FROM areas WHERE id IN ({','.join('?' * len(area_ids))})", area_ids)
+    areas = every if redo else [a for a in every if not a["discovered_at"]]
+    if len(areas) < len(every):
+        _log(f"{len(every) - len(areas)} area(s) already discovered, skipped: " + ", ".join(a["name"] for a in every if a not in areas))
     JOB["total"] = len(areas)
     for a in areas:
         if _stop.is_set():
@@ -401,7 +405,7 @@ def jobs(kind):
     if kind in ("discover", "retrieve") and not ids:
         return jsonify(ok=False, message="Add a study area first"), 400
     if kind == "discover":
-        ok, msg = _start(kind, job_discover, ids)
+        ok, msg = _start(kind, job_discover, ids, bool(d.get("redo")))
     elif kind == "retrieve":
         ok, msg = _start(kind, job_retrieve, ids, int(d.get("limit") or 0), bool(d.get("only_new", True)),
                          d.get("categories") or [])

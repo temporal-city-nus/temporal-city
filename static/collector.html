@@ -110,7 +110,7 @@
         <div class="row"><input id="polyName" placeholder="Name of this area"><button class="btn" id="addPoly">Add polygon</button></div>
       </div>
       <h3 class="sec">Study areas <span class="muted" id="areaCount"></span></h3>
-      <div class="selbar" id="selbar" hidden><button class="btn small" id="selAll" type="button">Select all</button><button class="btn small" id="selNone" type="button">Clear selection</button><span class="hint" id="selHint"></span></div>
+      <div class="selbar" id="selbar" hidden><button class="btn small" id="selAll" type="button">Select all</button><button class="btn small" id="selNone" type="button">Clear selection</button><button class="btn small" id="delSel" type="button">Delete selected</button><button class="btn small" id="delAll" type="button">Delete all areas</button><span class="hint" id="selHint"></span></div>
       <div id="areaList" class="list"></div>
     </section>
 
@@ -120,7 +120,12 @@
       <p class="lead">Queries OpenStreetMap (Overpass API, free) for every amenity, shop, tourism, leisure, craft and healthcare object inside each selected area, removes non-functional objects (benches, parking, toilets, ATMs …) and classifies the rest into the six functional categories.</p>
       <div class="card">
         <div class="row"><span>Selected areas: <b id="discoverSel">0</b></span></div>
-        <button class="btn primary" id="runDiscover">Start discovery</button>
+        <div class="row"><label class="chk"><input type="checkbox" id="discRedo"> Discover again areas already done</label></div>
+        <p class="hint" id="discoverDone"></p>
+        <div class="row">
+          <button class="btn primary" id="runDiscover">Start discovery</button>
+          <button class="btn ghost" id="stopDiscover">Stop</button>
+        </div>
       </div>
       <div id="discoverResults"></div>
     </section>
@@ -137,7 +142,7 @@
       <div class="card">
         <h3>Run</h3>
         <div class="row"><label class="inl">Max POIs this run <input id="retLimit" type="number" value="50" min="0"></label><span class="hint">0 = all</span></div>
-        <div class="row"><label class="chk"><input type="checkbox" id="retOnlyNew" checked> Skip POIs already processed</label></div>
+        <div class="row"><label class="chk"><input type="checkbox" id="retOnlyNew" checked> Skip POIs already processed (only new areas and POIs are run)</label></div>
         <div class="row"><div id="retCats" class="chips selectable"></div></div>
         <div class="row">
           <button class="btn primary" id="runRetrieve">Start retrieval</button>
@@ -324,7 +329,7 @@
     <!-- bottom dock: job status + the step bar (Back / Next) -->
     <div class="dock">
     <div id="job" class="job" hidden>
-      <div class="jobhead"><b id="jobTitle"></b><span><span id="jobCount"></span> <button class="link jobx" id="jobClose" title="Hide">✕</button></span></div>
+      <div class="jobhead"><b id="jobTitle"></b><span><span id="jobCount"></span> <button class="link jobx" id="jobStop" title="Stop this job" hidden>Stop</button> <button class="link jobx" id="jobClose" title="Hide">✕</button></span></div>
       <div class="bar"><span id="jobBar"></span></div>
       <div class="jobcur" id="jobCur"></div>
       <details><summary>Log</summary><pre id="jobLog"></pre></details>

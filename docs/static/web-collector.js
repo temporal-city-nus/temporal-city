@@ -297,13 +297,13 @@
     for (const url of OVERPASS) {
       if (job.stop) throw new Error('stopped');
       const host = url.split('/')[2], t0 = Date.now(); log(`  Overpass → ${host} …`);
-      const ctrl = new AbortController(), timer = setTimeout(() => ctrl.abort(), 75000);
+      const sig = jobSignal(75000);
       try {
-        const r = await realFetch(url, { method: 'POST', body: new URLSearchParams({ data: query }), signal: ctrl.signal });
-        clearTimeout(timer);
+        const r = await realFetch(url, { method: 'POST', body: new URLSearchParams({ data: query }), signal: sig.signal });
+        sig.done();
         if (r.ok) { log(`  Overpass OK (${host}, ${Math.round((Date.now() - t0) / 1000)} s)`); return await r.json(); }
         const msg = `HTTP ${r.status}` + ([429, 504].includes(r.status) ? ' (server busy)' : ''); log(`  ✗ ${host}: ${msg}`); errors.push(`${host}: ${msg}`);
-      } catch (e) { clearTimeout(timer); const msg = e.name === 'AbortError' ? 'no answer in 75 s' : 'cannot connect'; log(`  ✗ ${host}: ${msg}`); errors.push(`${host}: ${msg}`); }
+      } catch (e) { sig.done(); if (job.stop) throw new Error('stopped'); const msg = e.name === 'AbortError' ? 'no answer in 75 s' : 'cannot connect'; log(`  ✗ ${host}: ${msg}`); errors.push(`${host}: ${msg}`); }
     }
     throw new Error('All Overpass servers failed (' + errors.join(' | ') + '). Check your network or VPN and try again.');
   }
@@ -484,9 +484,15 @@
   let job = { id: 0, kind: null, status: 'idle', total: 0, done: 0, current: '', log: [] };
   const stamp = () => new Date().toTimeString().slice(0, 8) + ' ';
   const log = m => { job.log.push(stamp() + m); job.log = job.log.slice(-400); };
+  /* signal for one request: aborted by its own timeout or by Stop (job.ctrl) */
+  function jobSignal(ms) {
+    const c = new AbortController(), t = setTimeout(() => c.abort(), ms), j = job.ctrl;
+    if (j) { if (j.signal.aborted) c.abort(); else j.signal.addEventListener('abort', () => c.abort(), { once: true }); }
+    return { signal: c.signal, done: () => clearTimeout(t) };
+  }
   function start(kind, fn) {
     if (job.status === 'running') return [false, 'A job is already running'];
-    job = { id: job.id + 1, kind, status: 'running', total: 0, done: 0, current: '', log: [], started: now(), stop: false };
+    job = { id: job.id + 1, kind, status: 'running', total: 0, done: 0, current: '', log: [], started: now(), stop: false, ctrl: new AbortController() };
     (async () => {
       try { await fn(); job.status = job.stop ? 'stopped' : 'finished'; }
       catch (e) { if (job.stop) job.status = 'stopped'; else { job.status = 'error'; job.error = e.message; log('ERROR: ' + e.message); } }
@@ -496,8 +502,10 @@
   }
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   function isSample(a) { return SAMPLE_NAMES().includes(String(a.name).toLowerCase()) && a.kind === 'circle'; }
-  async function jobDiscover(ids) {
-    const areas = st.areas.filter(a => ids.includes(a.id)); job.total = areas.length;
+  async function jobDiscover(ids, redo) {
+    const all = st.areas.filter(a => ids.includes(a.id)), areas = redo ? all : all.filter(a => !a.discovered_at);
+    if (all.length > areas.length) log(`${all.length - areas.length} area(s) already discovered, skipped: ${all.filter(a => !areas.includes(a)).map(a => a.name).join(', ')}`);
+    job.total = areas.length;
     for (const a of areas) {
       if (job.stop) break;
       job.current = a.name;
@@ -538,9 +546,11 @@
   async function googleLookup(p, key) {
     const body = { textQuery: `${p.name} Singapore`, locationBias: { circle: { center: { latitude: p.lat, longitude: p.lon }, radius: 120 } }, maxResultCount: 5, languageCode: 'en' };
     let r;
-    try { r = await realFetch('https://places.googleapis.com/v1/places:searchText', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': key,
+    const sig = jobSignal(30000);
+    try { r = await realFetch('https://places.googleapis.com/v1/places:searchText', { method: 'POST', signal: sig.signal, headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': key,
       'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.regularOpeningHours,places.businessStatus,places.googleMapsUri' }, body: JSON.stringify(body) }); }
-    catch (e) { return { status: 'error: cannot reach Google Places' }; }
+    catch (e) { sig.done(); return { status: job.stop ? 'stopped' : 'error: cannot reach Google Places' }; }
+    sig.done();
     const j = await r.json().catch(() => ({}));
     if (!r.ok) return { status: `HTTP ${r.status} ${(j.error || {}).message || ''}`.slice(0, 180) };
     let best = null, bestScore = 0, bestD = 0;
@@ -557,14 +567,14 @@
   /* websites + AI through the online server (core/pipeline.py web_lookup): keys go with the request only */
   async function serverLookup(p, s) {
     const send = {}; ['use_search', 'search_engine', 'use_wikidata', 'extraction', 'cross_check', 'max_pages', 'crawl_delay', 'llm_provider', 'llm_base_url', 'llm_model', 'llm_api_key'].forEach(k => { if (s[k] != null) send[k] = s[k]; });
-    const ctrl = new AbortController(), t = setTimeout(() => ctrl.abort(), 150000);
+    const sig = jobSignal(150000);
     try {
-      const r = await realFetch(SERVER + '/api/web_lookup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: ctrl.signal,
+      const r = await realFetch(SERVER + '/api/web_lookup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: sig.signal,
         body: JSON.stringify({ poi: { id: p.id, name: p.name, lat: p.lat, lon: p.lon, address: p.address, category: p.category, website: p.website, brand_wikidata: p.brand_wikidata }, settings: send }) });
-      clearTimeout(t); const j = await r.json().catch(() => ({}));
+      sig.done(); const j = await r.json().catch(() => ({}));
       if (!r.ok) return { error: j.error || ('HTTP ' + r.status) };
       return j;
-    } catch (e) { clearTimeout(t); return { error: e.name === 'AbortError' ? 'the online server did not answer in time' : 'cannot reach the online server' }; }
+    } catch (e) { sig.done(); if (job.stop) return { error: 'stopped' }; return { error: e.name === 'AbortError' ? 'the online server did not answer in time' : 'cannot reach the online server' }; }
   }
   async function jobRetrieve(ids, limit, onlyNew, cats) {
     const s = settings(), cross = s.cross_check === '1';
@@ -613,10 +623,11 @@
         } else if (wantWeb && !webNote) { webNote = true; log('  Website reading is off (00 Setup → Online server). Use 03 → Google check to paste text, which the AI can read.'); }
         log(`${p.name || p.id}: ${hasHours() ? toText(JSON.parse(sourcesOf(p.id).filter(x => x.weekly).slice(-1)[0].weekly)) : 'no hours found'}`);
       }
+      if (job.stop) { reconcile(p.id); break; }  // cut off by Stop: run this POI again next time
       p.retrieved_at = now(); reconcile(p.id); job.done++;
       if (job.done % 20 === 0) save();
     }
-    log('Done.');
+    log(job.stop ? 'Stopped. POIs not finished are run again next time.' : 'Done.'); save();
   }
 
   /* ================================================================ exports (port of core/export.py) */
@@ -739,7 +750,7 @@ Return ONLY JSON:
     if (method === 'GET') {
       if (path === 'meta') return json({ ...D.meta, demo: false, web: true });
       if (path === 'settings') return json(mask(settings()));
-      if (path === 'job') { const { stop, ...j } = job; return json(j); }
+      if (path === 'job') { const { stop, ctrl, ...j } = job; return json(j); }
       if (path === 'areas') return json(areasOut());
       if (path === 'pois') return json(poisOf(aid).map(listRow));
       if (path.startsWith('pois/')) { const d = detail(decodeURIComponent(path.slice(5))); return d ? json(d) : json({ error: 'not found' }, 404); }
@@ -775,11 +786,11 @@ Return ONLY JSON:
     }
     if (path.startsWith('jobs/')) {
       const kind = path.slice(5);
-      if (kind === 'stop') { job.stop = true; return json({ ok: true }); }
+      if (kind === 'stop') { if (job.status === 'running') { job.stop = true; job.current = 'stopping…'; log('Stopped by the researcher.'); if (job.ctrl) job.ctrl.abort(); } return json({ ok: true }); }
       const ids = (body.area_ids || st.areas.map(a => a.id)).map(Number);
       if ((kind === 'discover' || kind === 'retrieve') && !ids.length) return json({ ok: false, message: 'Add a study area first' }, 400);
       let r;
-      if (kind === 'discover') r = start(kind, () => jobDiscover(ids));
+      if (kind === 'discover') r = start(kind, () => jobDiscover(ids, !!body.redo));
       else if (kind === 'retrieve') r = start(kind, () => jobRetrieve(ids, +(body.limit || 0), body.only_new !== false, body.categories || []));
       else return json({ ok: false, message: 'Estimating missing hours runs in the local app (py app.py).' }, 400);
       return json({ ok: r[0], message: r[1] }, r[0] ? 200 : 409);

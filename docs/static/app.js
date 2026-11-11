@@ -289,7 +289,7 @@ async function loadAreas() {
 function saveSel() { S.selTouched = true; try { localStorage.setItem("tc-area-sel", JSON.stringify([...S.sel])); } catch (e) {} }
 function renderAreas() {
   $("#areaCount").textContent = S.areas.length ? `· ${S.sel.size} of ${S.areas.length} selected` : "";
-  $("#selbar").hidden = S.areas.length < 2;
+  $("#selbar").hidden = !S.areas.length;
   $("#selHint").textContent = S.sel.size ? "" : "Nothing selected: tick the areas to work on.";
   renderStepbar();
   $("#areaList").innerHTML = S.areas.length ? S.areas.map((a) => `
@@ -310,6 +310,14 @@ $("#areaList").addEventListener("click", async (e) => {
 function confirmBox(msg) { return window.confirm(msg); }
 $("#selAll").onclick = () => { S.areas.forEach((a) => S.sel.add(a.id)); saveSel(); renderAreas(); drawAreas(); drawPois(); };
 $("#selNone").onclick = () => { S.sel.clear(); saveSel(); renderAreas(); drawAreas(); drawPois(); };
+async function deleteAreas(ids, what) {
+  if (!ids.length) return alert("Tick the areas to delete first.");
+  if (!confirmBox(`Delete ${what}? The POIs and opening hours collected there are removed (POIs that also lie in a kept area stay). This cannot be undone.`)) return;
+  try { for (const id of ids) await api(`/api/areas/${id}`, { method: "DELETE" }); } catch (e) { alert(e.message); }
+  ids.forEach((id) => S.sel.delete(id)); saveSel(); await loadAreas(); await loadPois();
+}
+$("#delSel").onclick = () => deleteAreas([...S.sel], S.sel.size === 1 ? "the selected area" : `the ${S.sel.size} selected areas`);
+$("#delAll").onclick = () => deleteAreas(S.areas.map((a) => a.id), `all ${S.areas.length} study areas`);
 function needSel() { if (S.sel.size) return true; go("area"); $("#selHint").textContent = "Select at least one study area first."; return false; }
 
 async function addAreas(list) {
@@ -323,6 +331,14 @@ async function addAreas(list) {
 }
 
 $("#addCases").onclick = () => addAreas(S.meta.case_studies.map((c) => ({ kind: "circle", ...c })));
+(() => {
+  const inp = $("#stationInput");
+  const open = () => { if (inp.value) { inp.dataset.prev = inp.value; inp.value = ""; } };
+  inp.addEventListener("focus", open);
+  inp.addEventListener("mousedown", () => { if (document.activeElement === inp) open(); });
+  inp.addEventListener("blur", () => { if (!inp.value && inp.dataset.prev) inp.value = inp.dataset.prev; });
+  inp.addEventListener("change", () => { inp.dataset.prev = inp.value; });
+})();
 $("#addStation").onclick = () => {
   const st = S.meta.stations.find((s) => s.name.toLowerCase() === $("#stationInput").value.trim().toLowerCase());
   if (!st) return alert("Pick a station from the list.");
@@ -375,6 +391,9 @@ async function loadPois() {
 /* ------------------------------------------------------------------ discover */
 function renderDiscover() {
   $("#discoverSel").textContent = S.sel.size;
+  const done = S.areas.filter((a) => S.sel.has(a.id) && a.discovered_at).length;
+  $("#discoverDone").textContent = !done ? "" : $("#discRedo").checked ? `${done} of ${S.sel.size} selected areas were discovered before and will be discovered again.`
+    : done === S.sel.size ? "All selected areas are already discovered: go on to 03 Hours." : `${done} of ${S.sel.size} selected areas are already discovered and will be skipped; only the new ones are run.`;
   const rows = S.areas.filter((a) => a.discovery_stats);
   $("#discoverResults").innerHTML = rows.length ? `<h3 class="sec">Results</h3><table class="t"><tr><th>Area</th><th>Raw OSM</th><th>Removed</th><th>POIs</th><th>OSM hours</th></tr>` +
     rows.map((a) => { const s = a.discovery_stats; return `<tr><td>${esc(a.name)}</td><td>${s.raw}</td><td>${s.non_functional}</td><td><b>${s.kept}</b></td><td>${s.with_osm_hours} (${s.kept ? Math.round(100 * s.with_osm_hours / s.kept) : 0}%)</td></tr>`; }).join("") +
@@ -385,7 +404,13 @@ function catBreakdown(rows) {
   rows.forEach((a) => Object.entries(a.discovery_stats.by_category || {}).forEach(([k, v]) => (tot[k] = (tot[k] || 0) + v)));
   return `<div class="chips" style="margin-top:10px">` + S.meta.categories.map((c) => `<span class="chip"><span class="dot" style="background:${CAT_COLOR[c]}"></span>${c} ${tot[c] || 0}</span>`).join("") + `</div>`;
 }
-$("#runDiscover").onclick = () => needSel() && startJob("discover", { area_ids: [...S.sel] });
+$("#runDiscover").onclick = () => {
+  if (!needSel()) return;
+  const redo = $("#discRedo").checked, todo = S.areas.filter((a) => S.sel.has(a.id) && (redo || !a.discovered_at));
+  if (!todo.length) return alert("All selected areas are already discovered. Go on to 03 Hours, or tick “Discover again areas already done”.");
+  startJob("discover", { area_ids: [...S.sel], redo });
+};
+$("#discRedo").onchange = renderDiscover;
 
 /* ------------------------------------------------------------------ retrieve */
 let SETTINGS = null;
@@ -414,7 +439,8 @@ $("#runRetrieve").onclick = () => needSel() && startJob("retrieve", {
   area_ids: [...S.sel], limit: +$("#retLimit").value, only_new: $("#retOnlyNew").checked, categories: [...S.retCats],
 });
 $("#jobClose").onclick = async () => { const j = await api("/api/job"); if (j.status !== "running") { S.jobHidden = j.id; $("#job").hidden = true; } };
-$("#stopJob").onclick = () => api("/api/jobs/stop", { method: "POST" });
+async function stopJob() { $("#jobCur").textContent = "Stopping…"; try { await api("/api/jobs/stop", { method: "POST" }); } catch (e) {} pollJob(); }
+["#stopJob", "#stopDiscover", "#jobStop"].forEach((id) => ($(id).onclick = stopJob));
 
 async function renderCoverage() {
   const ids = [...S.sel];
@@ -451,6 +477,7 @@ async function pollJob() {
     pre.textContent = j.log.join("\n"); if (atBottom) pre.scrollTop = pre.scrollHeight;
   }
   const running = j.status === "running";
+  $("#jobStop").hidden = !running; $("#stopJob").disabled = $("#stopDiscover").disabled = !running;
   if (running) {
     if (j.done !== S._lastDone && j.done % 5 === 0) refreshAfterJob(false);
     S._lastDone = j.done;
@@ -784,7 +811,7 @@ $("#resetDb").onclick = async () => {
   S.meta = await api("/api/meta");
   if (S.meta.demo) {
     $("#demoBanner").hidden = false;
-    ["#runDiscover", "#runRetrieve", "#runEstimate", "#stopJob", "#addCases", "#addStation", "#addAllStations", "#addCustom", "#addPoly", "#resetDb", "#qSave"].forEach((id) => { const el = $(id); if (el) el.disabled = true; });
+    ["#runDiscover", "#runRetrieve", "#runEstimate", "#stopJob", "#stopDiscover", "#jobStop", "#delSel", "#delAll", "#addCases", "#addStation", "#addAllStations", "#addCustom", "#addPoly", "#resetDb", "#qSave"].forEach((id) => { const el = $(id); if (el) el.disabled = true; });
   }
   $("#stationList").innerHTML = S.meta.stations.map((s) => `<option value="${esc(s.name)}">`).join("");
   $("#recLabel").innerHTML += LABELS.map((l) => `<option>${l}</option>`).join("");
