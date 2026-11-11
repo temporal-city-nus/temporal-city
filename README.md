@@ -11,11 +11,11 @@ Mixed-use planning records which land uses sit together, not when their amenitie
 ## Pages
 
 | Page | What it shows |
-|---|---|
-| **Story** | The argument in one scroll: drag the clock and watch amenities in three Singapore catchments switch on and off. |
-| **Collector** | Builds the dataset: find every amenity in an area, get its opening hours, check the evidence, export. |
-| **Atlas** | Maps and comparisons: hourly heat, 3D and GFA layers, and six research questions answered from the data. |
-| **Information** | Research question, method, data, limitations and references. |
+| --- | --- |
+| Story | Introduces the project’s central idea: access to everyday amenities depends on both where they are and when they are open. Three Singapore catchments illustrate how the same neighbourhood can offer different services over the course of a day. |
+| Collector | Choose an area to study, find amenities and their opening hours, and review the sources. Export the collected data to Atlas to map the results and compare study areas. |
+| Atlas | Maps the collected data so you can see which amenities are open, where they are concentrated, and how availability changes hour by hour. Explore hourly heatmaps alongside 3D and gross floor area (GFA) layers, and compare study areas across six research questions about access to amenities. |
+| Information | Research question, method, data, limitations and references. |
 
 All pages share a day/night switch; **Auto** follows the hour shown on the page.
 
@@ -74,13 +74,17 @@ Collector steps: **00 Setup → 01 Area → 02 Discover → 03 Hours → 04 Revi
 
 ## Run locally
 
-```
-py -m pip install -r requirements.txt
-py app.py
-```
+1. On GitHub, click **Code → Download ZIP**. Extract the ZIP and open the extracted project folder.
+2. On Windows, double-click `start.bat` to start the app. You can also open a terminal in the project folder and run:
 
-Open http://127.0.0.1:8765 (or double-click `start.bat`). Data is saved in `data/temporal_city.db`; keys entered in Setup stay on your computer.
+   ```powershell
+   py -m pip install -r requirements.txt
+   py app.py
+   ```
 
+3. Once the app starts, open [http://127.0.0.1:8765](http://127.0.0.1:8765) in your browser.
+
+Data is saved in `data/temporal_city.db`. API keys entered in Setup stay on your computer.
 ## Deployment
 
 **GitHub Pages** (the website) is served from `docs/`. After changing files in `static/`:
