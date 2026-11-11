@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Temporal City Information</title>
-<script src="static/daynight.js?v24-story-202611111749"></script>
-<script src="static/palette.js?v24-story-202611111749"></script>
+<script src="static/daynight.js?v24-story-202611112120"></script>
+<script src="static/palette.js?v24-story-202611112120"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Instrument+Serif:ital@0;1&family=Manrope:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
@@ -166,8 +166,8 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:8px 24px;justify-content:space-betw
 .part>div{display:flex;align-items:baseline;flex-wrap:wrap}
 
 </style>
-<link rel="stylesheet" href="static/future.css?v24-story-202611111749">
-<script src="static/lens-nav.js?v24-story-202611111749" defer></script>
+<link rel="stylesheet" href="static/future.css?v24-story-202611112120">
+<script src="static/lens-nav.js?v24-story-202611112120" defer></script>
 </head>
 <body class="information-page">
 <header class="appbar"><div class="progress" id="progress" aria-hidden="true"></div><div class="wrap">
@@ -210,24 +210,11 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:8px 24px;justify-content:space-betw
   <div class="eyebrow">Project team</div>
   <h2>Four people behind <em>the work.</em></h2>
   <div class="author-grid">
-    <article class="author-card" data-author="bao-yihan"><label class="author-upload">
-      <input type="file" disabled accept=".jpg,.jpeg,.png,.gif,image/jpeg,image/png,image/gif" aria-label="Upload Bao Yihan portrait">
-      <span class="author-avatar"><span class="author-initials">BY</span><img alt="Bao Yihan portrait" hidden></span>
-      <span class="author-action" aria-hidden="true">+</span></label><h3>Bao Yihan</h3><p class="author-affiliation">MLA · CDE · NUS</p></article>
-    <article class="author-card" data-author="li-jingyao"><label class="author-upload">
-      <input type="file" disabled accept=".jpg,.jpeg,.png,.gif,image/jpeg,image/png,image/gif" aria-label="Upload Li Jingyao portrait">
-      <span class="author-avatar"><span class="author-initials">LJ</span><img alt="Li Jingyao portrait" hidden></span>
-      <span class="author-action" aria-hidden="true">+</span></label><h3>Li Jingyao</h3><p class="author-affiliation">MLA · CDE · NUS</p></article>
-    <article class="author-card" data-author="lin-keyu"><label class="author-upload">
-      <input type="file" disabled accept=".jpg,.jpeg,.png,.gif,image/jpeg,image/png,image/gif" aria-label="Upload Lin Keyu portrait">
-      <span class="author-avatar"><span class="author-initials">LK</span><img alt="Lin Keyu portrait" hidden></span>
-      <span class="author-action" aria-hidden="true">+</span></label><h3>Lin Keyu</h3><p class="author-affiliation">MLA · CDE · NUS</p></article>
-    <article class="author-card" data-author="yan-linhao"><label class="author-upload">
-      <input type="file" disabled accept=".jpg,.jpeg,.png,.gif,image/jpeg,image/png,image/gif" aria-label="Upload Yan Linhao portrait">
-      <span class="author-avatar"><span class="author-initials">YL</span><img alt="Yan Linhao portrait" hidden></span>
-      <span class="author-action" aria-hidden="true">+</span></label><h3>Yan Linhao</h3><p class="author-affiliation">MLA · CDE · NUS</p></article>
+    <article class="author-card" data-author="bao-yihan"><span class="author-upload"><span class="author-avatar"><span class="author-initials">BY</span><img alt="Bao Yihan portrait" hidden></span></span><h3>Bao Yihan</h3><p class="author-affiliation">MLA · CDE · NUS</p></article>
+    <article class="author-card" data-author="li-jingyao"><span class="author-upload"><span class="author-avatar"><span class="author-initials">LJ</span><img alt="Li Jingyao portrait" hidden></span></span><h3>Li Jingyao</h3><p class="author-affiliation">MLA · CDE · NUS</p></article>
+    <article class="author-card" data-author="lin-keyu"><span class="author-upload"><span class="author-avatar"><span class="author-initials">LK</span><img alt="Lin Keyu portrait" hidden></span></span><h3>Lin Keyu</h3><p class="author-affiliation">MLA · CDE · NUS</p></article>
+    <article class="author-card" data-author="yan-linhao"><span class="author-upload"><span class="author-avatar"><span class="author-initials">YL</span><img alt="Yan Linhao portrait" hidden></span></span><h3>Yan Linhao</h3><p class="author-affiliation">MLA · CDE · NUS</p></article>
   </div>
-  <p class="author-status" role="status" aria-live="polite"></p>
 </section>
 
 <section class="sec" id="problem">
@@ -463,40 +450,14 @@ TCDayNight.mountSwitch(document.getElementById('dnSwitch'));
 </script>
 <script>
 (() => {
-  const status = document.querySelector('.author-status');
   for (const card of document.querySelectorAll('.author-card')) {
     const slug = card.dataset.author;
-    const input = card.querySelector('input[type="file"]');
     const portrait = card.querySelector('img');
     const initials = card.querySelector('.author-initials');
     const url = ({"bao-yihan": "static/avatars/bao-yihan.jpg", "li-jingyao": "static/avatars/li-jingyao.png", "lin-keyu": "static/avatars/lin-keyu.jpg", "yan-linhao": "static/avatars/yan-linhao.jpg"})[slug]; if (!url) continue;
     portrait.onload = () => { portrait.hidden = false; initials.hidden = true; };
     portrait.onerror = () => { portrait.hidden = true; initials.hidden = false; };
     portrait.src = url;
-    input.addEventListener('change', async () => {
-      const file = input.files && input.files[0];
-      if (!file) return;
-      if (!/\.(jpe?g|png|gif)$/i.test(file.name) || file.size > 5_000_000) {
-        status.textContent = 'Choose a JPG, PNG or GIF under 5 MB.';
-        input.value = '';
-        return;
-      }
-      const preview = URL.createObjectURL(file);
-      portrait.src = preview;
-      status.textContent = 'Saving ' + card.querySelector('h3').textContent + '…';
-      try {
-        const body = new FormData(); body.append('file', file);
-        const response = await fetch(url, {method:'POST', body});
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Upload failed');
-        portrait.src = url + '?v=' + Date.now();
-        status.textContent = 'Portrait saved in this project.';
-        URL.revokeObjectURL(preview);
-      } catch (error) {
-        status.textContent = 'Preview only. ' + error.message + '. Run the local app to save it.';
-      }
-      input.value = '';
-    });
   }
 })();
 </script>

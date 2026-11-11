@@ -82,16 +82,47 @@ def _area_district(name: str | None, lat, lon) -> str | None:
     return None
 
 
-def collector_dataset(area_ids: list[int] | None = None):
+ROW_KEYS = ("id", "name", "category", "subtype", "lat", "lon", "final_label", "final_weekly",
+            "area_id", "area_name", "a_lat", "a_lon", "a_r")
+
+
+def rows_from_payload(items) -> list[dict]:
+    """POI-area rows sent by the browser Collector (GitHub Pages), shaped like the SQL rows below.
+    Nothing is stored; only the fields the Atlas needs are kept."""
+    out = []
+    for it in items if isinstance(items, list) else []:
+        if not isinstance(it, dict) or it.get("id") is None or it.get("area_id") is None:
+            continue
+        try:
+            r = {k: it.get(k) for k in ROW_KEYS}
+            r["id"], r["area_id"] = str(r["id"])[:200], int(r["area_id"])
+            r["lat"], r["lon"] = float(r["lat"]), float(r["lon"])
+            for k in ("a_lat", "a_lon", "a_r"):
+                r[k] = float(r[k]) if r[k] not in (None, "") else None
+            for k in ("name", "category", "subtype", "final_label", "area_name"):
+                r[k] = None if r[k] is None else str(r[k])[:300]
+            w = r["final_weekly"]
+            r["final_weekly"] = w if isinstance(w, str) else (json.dumps(w) if isinstance(w, dict) else None)
+            if r["final_weekly"]:
+                json.loads(r["final_weekly"])
+        except (TypeError, ValueError):
+            continue
+        out.append(r)
+    out.sort(key=lambda r: r["area_id"])
+    return out
+
+
+def collector_dataset(area_ids: list[int] | None = None, rows: list[dict] | None = None):
     """POIs for the Atlas plus the study areas they belong to.
 
     Every Collector study area with POIs can be shown; `area_ids` (from the Collector's selection or the
     Atlas area picker) chooses which. Without it, the areas with the most POIs are shown. At most
     MAX_AREAS areas, largest first. Areas that are a case study (by name or centre) take its name and
     catchment. Returns (data, areas, dropped_poi_count, choices)."""
-    rows = db.q("SELECT p.*, a.id AS area_id, a.name AS area_name, a.lat AS a_lat, a.lon AS a_lon, a.radius AS a_r "
-                "FROM pois p JOIN poi_area pa ON pa.poi_id=p.id JOIN areas a ON a.id=pa.area_id "
-                "WHERE p.perm_closed=0 ORDER BY a.id")
+    if rows is None:
+        rows = db.q("SELECT p.*, a.id AS area_id, a.name AS area_name, a.lat AS a_lat, a.lon AS a_lon, a.radius AS a_r "
+                    "FROM pois p JOIN poi_area pa ON pa.poi_id=p.id JOIN areas a ON a.id=pa.area_id "
+                    "WHERE p.perm_closed=0 ORDER BY a.id")
     # one district per study area; names made unique
     dist_of, info, used = {}, {}, {}
     for r in rows:
@@ -241,7 +272,8 @@ def _parcels_and_spatial(html: str, data: list[dict], areas: list[dict]):
 _lu_cache: dict = {}
 
 
-def atlas_html(static_dir: str, source: str, area_ids: list[int] | None = None) -> str:
+def atlas_html(static_dir: str, source: str, area_ids: list[int] | None = None, rows: list[dict] | None = None) -> str:
+    """`rows`: POIs sent by the browser Collector instead of this server's database (see rows_from_payload)."""
     path = os.path.join(static_dir, "atlas.html")
     mtime = os.path.getmtime(path)
     if _cache.get("mtime") != mtime:
@@ -250,7 +282,7 @@ def atlas_html(static_dir: str, source: str, area_ids: list[int] | None = None) 
     html = _cache["html"].replace('https://unpkg.com/maplibre-gl@5.8.0/dist/maplibre-gl.js', '/static/vendor/maplibre-gl.js')
     if source != "collector":
         return html
-    data, areas, dropped, choices = collector_dataset(area_ids)
+    data, areas, dropped, choices = collector_dataset(area_ids, rows)
     parcels, spatial, lu_source = _parcels_and_spatial(html, data, areas)
     parcel_joined = len({i for f in parcels["features"] for i in f["properties"]["poi_idx"]})
     building_joined = _join_buildings(html, data)
@@ -271,8 +303,19 @@ def atlas_html(static_dir: str, source: str, area_ids: list[int] | None = None) 
                + ";window.TC_OV_ZOOM=" + json.dumps(zoom) + ";")
     html = html.replace("</head>", "<script>" + js + "</script></head>", 1)
     if not data:  # explain an empty result in the Atlas banner
-        diag = db.summary()
-        diag["labels"] = db.q("SELECT final_label AS label, COUNT(*) AS n FROM pois GROUP BY final_label")
+        if rows is None:
+            diag = db.summary()
+            diag["labels"] = db.q("SELECT final_label AS label, COUNT(*) AS n FROM pois GROUP BY final_label")
+        else:  # data from the browser Collector
+            per_area, labels, pois = {}, {}, {}
+            for r in rows:
+                a = per_area.setdefault(r["area_id"], {"id": r["area_id"], "name": r["area_name"] or f"Area {r['area_id']}", "n": 0})
+                a["n"] += 1
+                pois[r["id"]] = r["final_label"]
+            for lab in pois.values():
+                labels[lab] = labels.get(lab, 0) + 1
+            diag = {"path": "this browser (Collector on GitHub Pages)", "pois": len(pois), "areas": list(per_area.values()),
+                    "labels": [{"label": k, "n": v} for k, v in labels.items()]}
         html = html.replace("</head>", "<script>window.COLLECTOR_DIAG=" + json.dumps(diag, ensure_ascii=False).replace("</", "<\\/") + "</script></head>", 1)
     return html.replace('window.ATLAS_SOURCE="sample";', 'window.ATLAS_SOURCE="collector";', 1)
 

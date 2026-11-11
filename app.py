@@ -5,6 +5,7 @@ Run:  py app.py   →  open http://127.0.0.1:8765 (opens automatically)
 from __future__ import annotations
 
 import json
+import re
 import os
 import threading
 import time
@@ -165,52 +166,25 @@ def information():
     return _page("information.html")
 
 
-@app.route("/api/author-avatar/<slug>", methods=["GET", "POST"])
+@app.get("/api/author-avatar/<slug>")
 def author_avatar(slug):
-    """Four locally editable portraits; image files stay with this project."""
+    """The four team portraits. They are set in the source code (static/avatars/<slug>.image), not uploaded."""
     if slug not in {"bao-yihan", "li-jingyao", "lin-keyu", "yan-linhao"}:
         return jsonify(error="Unknown author"), 404
-    directory = os.path.join(app.static_folder, "avatars")
-    path = os.path.join(directory, slug + ".image")
-
-    def image_type(data):
-        if data.startswith(b"\x89PNG\r\n\x1a\n"):
-            return "image/png"
-        if data.startswith((b"GIF87a", b"GIF89a")):
-            return "image/gif"
-        if data.startswith(b"\xff\xd8\xff"):
-            return "image/jpeg"
-        return None
-
-    if request.method == "GET":
-        if not os.path.isfile(path):
-            return jsonify(error="Portrait not uploaded"), 404
-        with open(path, "rb") as stream:
-            data = stream.read()
-        return Response(data, mimetype=image_type(data) or "application/octet-stream")
-
-    if PUBLIC_DEMO or request.remote_addr not in ("127.0.0.1", "::1"):
-        return jsonify(error="Upload portraits from the local app"), 403
-    if request.content_length and request.content_length > 5_300_000:
-        return jsonify(error="Image must be 5 MB or smaller"), 413
-    upload = request.files.get("file")
-    if upload is None:
-        return jsonify(error="Choose a JPG, PNG or GIF image"), 400
-    data = upload.read(5_000_001)
-    if len(data) > 5_000_000 or image_type(data) is None:
-        return jsonify(error="Choose a valid JPG, PNG or GIF under 5 MB"), 400
-    os.makedirs(directory, exist_ok=True)
-    temporary = path + ".tmp"
-    with open(temporary, "wb") as stream:
-        stream.write(data)
-    os.replace(temporary, path)
-    return jsonify(ok=True, url=f"/api/author-avatar/{slug}")
+    path = os.path.join(app.static_folder, "avatars", slug + ".image")
+    if not os.path.isfile(path):
+        return jsonify(error="No portrait"), 404
+    with open(path, "rb") as stream:
+        data = stream.read()
+    kind = ("image/png" if data.startswith(b"\x89PNG\r\n\x1a\n") else "image/gif" if data.startswith((b"GIF87a", b"GIF89a"))
+            else "image/jpeg" if data.startswith(b"\xff\xd8\xff") else "application/octet-stream")
+    return Response(data, mimetype=kind)
 
 
 @app.before_request
 def _read_only_demo():
     """On a public URL, visitors can browse everything but cannot start jobs or change data."""
-    if PUBLIC_DEMO and request.method in ("POST", "DELETE", "PUT") and request.path not in ("/api/parse", "/api/web_lookup"):
+    if PUBLIC_DEMO and request.method in ("POST", "DELETE", "PUT") and request.path not in ("/api/parse", "/api/web_lookup", "/api/atlas_html"):
         return jsonify(error="This is a read-only public demo. Run the app locally to collect data.",
                        message="Read-only public demo"), 403
 
@@ -283,6 +257,27 @@ def web_lookup():
         except Exception as e:
             return _cors(jsonify(error=f"{type(e).__name__}: {str(e)[:160]}")), 500
     return _cors(jsonify(res))
+
+
+@app.route("/api/atlas_html", methods=["POST", "OPTIONS"])
+def atlas_from_browser():
+    """The Atlas built from POIs sent by the browser Collector (GitHub Pages), which keeps its data in the
+    visitor's browser. Same computation as /atlas.html?source=collector; nothing is stored here.
+    Paths in the page are relative, so it works when shown on the public site."""
+    if request.method == "OPTIONS":
+        return _cors(Response(status=204))
+    if request.content_length and request.content_length > 25_000_000:
+        return _cors(jsonify(error="Too much data for the Atlas (over 25 MB)")), 413
+    from core import atlas_bridge
+    d = request.get_json(silent=True) or {}
+    rows = atlas_bridge.rows_from_payload(d.get("rows"))
+    ids = [int(x) for x in (d.get("area_ids") or []) if str(x).strip().lstrip("-").isdigit()] or None
+    try:
+        html = atlas_bridge.atlas_html(app.static_folder, "collector", ids, rows)
+    except Exception as e:
+        return _cors(jsonify(error=f"{type(e).__name__}: {str(e)[:160]}")), 500
+    html = re.sub(r'(["\'(])/static/', r'\1static/', html)
+    return _cors(Response(html, mimetype="text/html"))
 
 
 @app.get("/api/meta")

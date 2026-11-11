@@ -54,12 +54,12 @@ def rel_paths(html: str) -> str:
     html = html.replace('https://unpkg.com/maplibre-gl@5.8.0/dist/maplibre-gl.js', 'static/vendor/maplibre-gl.js')
     html = re.sub(r'(["\'(])/static/', r'\1static/', html)
     html = re.sub(r'(static/[\w./-]+\.(?:js|css))\?v[\w-]*"', r'\1?' + VERSION + '"', html)
-    # "Collector" links open the full version on Render (websites + AI); the browser version stays at collector.html
+    # "Collector" links open the browser version on this site (websites + AI through the online server);
+    # the full version on Render stays linked from Information as "server version"
     html = html.replace('<tr><td><a href="collector.html" data-needs-app>Collector</a></td>',
-                        '<tr><td><a href="' + FULL + 'collector.html">Collector</a><br><a href="collector.html" class="small">browser version</a></td>')
-    html = html.replace('href="collector.html" data-needs-app', 'href="' + FULL + 'collector.html"')
-    # Atlas: Collector data needs the local server, so on the public site that button explains instead
-    html = html.replace('<a href="atlas.html?source=collector" data-src="collector">', '<a href="' + FULL + 'atlas.html?source=collector" data-src="collector">')
+                        '<tr><td><a href="collector.html">Collector</a><br><a href="' + FULL + 'collector.html" class="small">server version</a></td>')
+    html = html.replace('href="collector.html" data-needs-app', 'href="collector.html"')
+    # Atlas: atlas.html?source=collector is built by the server from this browser's Collector data (web-atlas.js)
     return html
 
 
@@ -194,6 +194,9 @@ def main():
     pages = {}
     for name in ("index.html", "atlas.html", "information.html"):
         pages[name] = rel_paths(open(os.path.join(STATIC, name), encoding="utf-8").read())
+    pages["atlas.html"] = pages["atlas.html"].replace('<head><meta charset="UTF-8">',
+        '<head><meta charset="UTF-8"><script src="static/web-atlas.js?' + VERSION + '"></script>', 1)
+    assert "web-atlas.js" in pages["atlas.html"]
     pages["information.html"] = information(pages["information.html"], pics)
     # the real Collector running in the browser: web-collector.js answers its API calls (any area via OSM / Google)
     coll = rel_paths(open(os.path.join(STATIC, "collector.html"), encoding="utf-8").read())

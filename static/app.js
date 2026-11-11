@@ -224,8 +224,8 @@ function stepStatus(i) {
   }
 }
 function atlasHref() {
-  const ids = [...S.sel];
-  return "atlas.html?source=collector" + (ids.length && ids.length < S.areas.length ? "&areas=" + ids.join(",") : "");
+  // every collected study area; the Atlas has its own "Choose study areas" picker
+  return "atlas.html?source=collector";
 }
 function renderSubtabs() {
   $$(".pane").forEach((pane) => {
