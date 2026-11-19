@@ -4,7 +4,10 @@
 
 Mixed-use planning records which land uses sit together, not when their amenities are available. Temporal City builds hour-by-hour opening data for every amenity in an area and compares that 24-hour availability with the area's land-use mix.
 
+AR5958A Topics in Urbanism 1 · Group 3
+
 - **Website:** https://temporal-city-nus.github.io/temporal-city/
+- **Final report (PDF):** https://temporal-city-nus.github.io/temporal-city/static/report/Temporal_City_Final_Report.pdf
 - **Collector (browser version):** https://temporal-city-nus.github.io/temporal-city/collector.html (data and keys stay in your browser; turn on *00 Setup → Online server* to read business websites with AI; **View in Atlas** shows your own data)
 - **Collector (server version):** https://temporal-city.onrender.com/collector.html (runs entirely on the free server, which may take about a minute to wake up; data is shared and may reset when the server restarts)
 
@@ -15,7 +18,7 @@ Mixed-use planning records which land uses sit together, not when their amenitie
 | Story | Introduces the project’s central idea: access to everyday amenities depends on both where they are and when they are open. Three Singapore catchments illustrate how the same neighbourhood can offer different services over the course of a day. |
 | Collector | Choose an area to study, find amenities and their opening hours, and review the sources. **View in Atlas** opens the collected data in the Atlas to map the results and compare study areas. |
 | Atlas | Two data sources: the **Google Places sample** (three case areas) and the **Collector database** (every area you have collected). Maps the data so you can see which amenities are open, where they are concentrated, and how availability changes hour by hour. Explore hourly heatmaps alongside 3D and gross floor area (GFA) layers, and compare study areas across six research questions about access to amenities. |
-| Information | Project team, research question, method, data, limitations and references. |
+| Information | Project team, research question, method, data, limitations, references, the final report and the repository link. |
 
 All pages share a day/night switch; **Auto** follows the hour shown on the page.
 
@@ -122,7 +125,7 @@ app.py               server: pages, Collector API, background jobs
 core/                discovery (OSM), hours parsing, website crawler, AI reader, Google Places,
                      quality labels, availability analysis, land use / GFA, exports
 static/              the four pages; web-collector.js runs the Collector in the browser,
-                     web-atlas.js shows its data in the Atlas
+                     web-atlas.js shows its data in the Atlas; report/ holds the final report
 docs/                built website for GitHub Pages
 tools/               build scripts for the website, the Atlas and land use
 data/                station list, simplified Master Plan 2025, local database
@@ -132,16 +135,16 @@ Dockerfile, render.yaml   Render deployment
 
 ## Limitations
 
-- **AI:** can misread text; accuracy not yet measured on a large sample; cannot read hours in images, PDFs or JavaScript pages.
+- **AI:** can misread text; accuracy not yet measured on a large sample (the audit is built into Review but not yet run); cannot read hours in images, PDFs or JavaScript pages.
 - **Web search** sometimes finds the wrong pages; they are rejected when the place's name is not on the page.
 - **Data:** small shops and hawkers are under-recorded; opening hours are not the same as actual use; holidays are not modelled.
 - **Scope:** three Central Area catchments show an association, not a cause.
-- **Google data:** the case-area sample is used for non-commercial research only.
+- **Google Places:** free use is limited to a small monthly allowance, so it suits small study areas; larger areas need paid use. Without a key, free sources (OSM tags, business websites) cover far fewer opening hours (18.6% in the case areas). The case-area sample is used for non-commercial coursework only.
 
 The full list is on the Information page.
 
 ## Team
 
-Bao Yihan, Li Jingyao, Lin Keyu, Yan Linhao · College of Design and Engineering, National University of Singapore.
+Bao Yihan, Li Jingyao, Lin Keyu, Yan Linhao · AR5958A Topics in Urbanism 1 · College of Design and Engineering, National University of Singapore.
 
 Map data © OpenStreetMap contributors · Land use © URA · Places data © Google
