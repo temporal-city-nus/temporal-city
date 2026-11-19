@@ -139,7 +139,8 @@ Dockerfile, render.yaml   Render deployment
 - **Web search** sometimes finds the wrong pages; they are rejected when the place's name is not on the page.
 - **Data:** small shops and hawkers are under-recorded; opening hours are not the same as actual use; holidays are not modelled.
 - **Scope:** three Central Area catchments show an association, not a cause.
-- **Google Places:** free use is limited to a small monthly allowance, so it suits small study areas; larger areas need paid use. Without a key, free sources (OSM tags, business websites) cover far fewer opening hours (18.6% in the case areas). The case-area sample is used for non-commercial coursework only.
+- **Land use and GFA:** Master Plan land use is planned, not actual, use; GFA is estimated only where a numeric plot ratio exists (38–97% of land in the case areas).
+- **Google Places:** free use is limited to a small monthly allowance, so it suits small study areas; larger areas need paid use. Without a key, free sources cover far fewer opening hours (OSM tags alone: 18.6% in the case areas). The case-area sample is used for non-commercial coursework only.
 
 The full list is on the Information page.
 
