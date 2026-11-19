@@ -202,7 +202,8 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:8px 24px;justify-content:space-betw
   <a href="#limits-ai" class="toc-sub">AI approach</a>
   <a href="#limits-data" class="toc-sub">Data &amp; analysis</a>
   <a href="#refs"><b>07</b>References</a>
-  <a href="#repo"><b>08</b>Project repository</a>
+  <a href="#report"><b>08</b>Final report</a>
+  <a href="#repo"><b>09</b>Project repository</a>
 </nav>
 
 <div class="content">
@@ -422,8 +423,44 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:8px 24px;justify-content:space-betw
   </ol>
 </section>
 
+<section class="sec" id="report">
+  <div class="eyebrow">08 · Final report</div>
+  <h2>Read the <em>report.</em></h2>
+  <p class="sub">The full write-up of the project, from problem to evaluation, as a 12-page PDF.</p>
+  <style>
+    .tc-report{display:grid;grid-template-columns:minmax(220px,300px) 1fr;gap:40px;align-items:center;margin-top:22px;padding:30px 34px;border:1px solid var(--line,#e3e1ea);border-radius:22px;background:var(--card,#fff);box-shadow:0 18px 50px rgba(60,50,110,.08);position:relative;overflow:hidden}
+    .tc-report::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#8b6be0,#f08a7a)}
+    .tc-report-cover{display:block;transition:transform .35s ease}
+    .tc-report-cover:hover{transform:translateY(-4px) rotate(-1deg)}
+    .tc-report-cover img{width:100%;height:auto;display:block}
+    .tc-report-meta{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+    .tc-report-meta span{font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:999px;border:1px solid var(--line,#e3e1ea);color:var(--muted,#777)}
+    .tc-report h3{font-size:24px;line-height:1.25;margin:0 0 8px;color:var(--ink,#1d1d1f)}
+    .tc-report .tc-report-lede{color:var(--muted,#666);margin:0 0 18px;font-size:15px;line-height:1.55}
+    .tc-report ol{columns:2;column-gap:28px;margin:0 0 24px;padding-left:20px;font-size:14px;line-height:1.9;color:var(--ink,#1d1d1f)}
+    .tc-report-actions{display:flex;flex-wrap:wrap;gap:10px}
+    .tc-report-actions .btn{text-decoration:none;padding:11px 18px;font-size:12px}
+    @media (max-width:760px){.tc-report{grid-template-columns:1fr;gap:24px;padding:24px}.tc-report-cover{max-width:260px;margin:auto}.tc-report ol{columns:1}}
+  </style>
+  <div class="tc-report">
+    <a class="tc-report-cover" href="/static/report/Temporal_City_Final_Report.pdf" target="_blank" rel="noopener" aria-label="Open the final report (PDF)"><img src="/static/report/report-preview.png" alt="Pages of the Temporal City final report" loading="lazy"></a>
+    <div>
+      <div class="tc-report-meta"><span>PDF</span><span>12 pages</span><span>November 2026</span><span>AR5958A · Group 3</span></div>
+      <h3>Temporal City: measuring when a mixed-use city is available</h3>
+      <p class="tc-report-lede">AI-assisted opening-hours collection for 24-hour amenity availability in Singapore.</p>
+      <ol>
+        <li>Problem statement</li><li>Proposed solution</li><li>AI methodology</li>
+        <li>Prototype and demonstration</li><li>Critical evaluation</li><li>Project repository</li>
+      </ol>
+      <div class="tc-report-actions">
+        <a class="btn primary" href="/static/report/Temporal_City_Final_Report.pdf" target="_blank" rel="noopener">Read the report ↗</a>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section class="sec" id="repo" style="min-height:60vh">
-  <div class="eyebrow">08 · Project repository</div>
+  <div class="eyebrow">09 · Project repository</div>
   <h2>Code and <em>data.</em></h2>
   <p class="sub">The full source code, data-processing scripts, README and instructions for running the app locally are on GitHub.</p>
   <p style="font-size:18px;margin-top:14px"><a href="https://github.com/temporal-city-nus/temporal-city" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;text-underline-offset:4px">github.com/temporal-city-nus/temporal-city&nbsp;↗</a></p>
